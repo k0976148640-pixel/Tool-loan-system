@@ -6,12 +6,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 import plotly.express as px
 import json
+import streamlit.components.v1 as components # 💡 新增：用來執行背景腳本
 
 # --- 0. 設定與連線 ---
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 SHEET_NAME = 'test_piece_db'
 JSON_FILE = 'service_account.json'
-
 
 @st.cache_resource
 def connect_google_sheet():
@@ -28,12 +28,10 @@ def connect_google_sheet():
         st.error(f"❌ 連線失敗：{e}")
         st.stop()
 
-
 sh = connect_google_sheet()
 ws_gauges = sh.worksheet('gauges')
 ws_logs = sh.worksheet('logs')
 ws_users = sh.worksheet('users')
-
 
 # --- 1. 資料處理核心 ---
 @st.cache_data(ttl=60)
@@ -61,7 +59,6 @@ def get_all_data(worksheet_name):
             st.stop()
         else:
             return pd.DataFrame()
-
 
 def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="可借出", note=""):
     now_tw = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
@@ -121,7 +118,6 @@ def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="
     get_all_data.clear('gauges')
     get_all_data.clear('logs')
 
-
 def get_last_sizes(df_logs, gauge_id):
     if df_logs.empty or 'post_size' not in df_logs.columns: return {}
     history = df_logs[(df_logs['gauge_id'].astype(str) == str(gauge_id)) & (df_logs['post_size'] != "")]
@@ -131,7 +127,6 @@ def get_last_sizes(df_logs, gauge_id):
         return json.loads(last_record['post_size'])
     except:
         return {}
-
 
 @st.dialog("⚠️ 缺少研磨機號確認")
 def confirm_no_machine(gauge_id, current_user):
@@ -147,22 +142,43 @@ def confirm_no_machine(gauge_id, current_user):
         if st.button("❌ 取消返回", use_container_width=True):
             st.rerun()
 
-
 # --- 2. 介面設計 ---
 def main():
     st.set_page_config(page_title="標準試磨件管理系統", layout="wide")
 
-    # 💡 升級點：加入隱藏手機鍵盤的專屬 CSS
+    # 💡 核心解法：隱藏在背景執行的 JavaScript 腳本
+    # 這個腳本會強行把所有下拉選單的底層輸入框設定為「禁止輸入」與「唯讀」
+    components.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        function disableMobileKeyboard() {
+            const inputs = doc.querySelectorAll('div[data-baseweb="select"] input');
+            inputs.forEach(input => {
+                input.setAttribute('inputmode', 'none');
+                input.setAttribute('readonly', 'true');
+            });
+        }
+        // 頁面載入時執行一次
+        disableMobileKeyboard();
+        // 設立觀察者，當畫面有變動(例如切換分頁)時，再次強制執行
+        const observer = new MutationObserver(disableMobileKeyboard);
+        observer.observe(doc.body, {childList: true, subtree: true});
+        </script>
+        """,
+        height=0,
+        width=0
+    )
+
     st.markdown("""
         <style>
         .stButton > button { font-size: 18px !important; height: 2.8em !important; width: 100%; border-radius: 6px; }
         .stAlert { padding-top: 0.5rem; padding-bottom: 0.5rem; }
         p, div, label { font-size: 18px !important; }
-
-        /* 🚀 強制關閉下拉選單的輸入與游標功能，徹底阻止手機鍵盤彈出 */
+        /* 保留 CSS 防護網，防止游標閃爍 */
         div[data-baseweb="select"] input {
-            pointer-events: none !important;
             caret-color: transparent !important;
+            cursor: pointer !important;
         }
         </style>
     """, unsafe_allow_html=True)
