@@ -9,7 +9,7 @@ import json
 import streamlit.components.v1 as components
 
 # ==========================================
-# 🌐 語言翻譯辭典庫 (i18n)
+# 🌐 語言翻譯辭典庫 (i18n) - 正名回歸版
 # ==========================================
 LANG_DICT = {
     "zh": {
@@ -17,7 +17,7 @@ LANG_DICT = {
         "role_user": "使用者 (操作)",
         "role_admin": "管理員 (後台)",
         "sidebar_lang": "Language / 語言",
-        "app_title": "☁️ 標準試磨借出系統",
+        "app_title": "☁️ 標準試磨件借出系統",  # 💡 改回原名
         "loading": "資料加載中，請稍候...",
         "sel_name": "請先選擇您的姓名",
         "sel_machine": "請輸入研磨機號 (選填)",
@@ -27,7 +27,7 @@ LANG_DICT = {
         "tab_status": "查詢狀態 🔍",
         "filter_cat": "📁 篩選分類",
         "all_cat": "全部顯示",
-        "stock_title": "#### ✅ 庫存量具",
+        "stock_title": "#### ✅ 庫存試磨件",  # 💡 改回原名
         "no_stock": "此分類目前無可借出項目",
         "btn_borrow": "借出",
         "err_name": "⚠️ 請先在畫面上方選擇您的「姓名」！",
@@ -56,7 +56,6 @@ LANG_DICT = {
         "menu_scrap": "🗑️ 報廢汰換",
         "menu_logs": "📝 事件總紀錄",
         "menu_sys": "⚙️ 系統設定",
-        # 資料庫狀態映射 (前端顯示用)
         "db_可借出": "可借出",
         "db_已借出": "已借出",
         "db_待確認": "待確認",
@@ -73,14 +72,38 @@ LANG_DICT = {
         "judge_pass": "合格",
         "judge_fail": "需汰換",
         "measure_val": "實測",
-        "btn_confirm_return": "確認尺寸並結案"
+        "btn_confirm_return": "確認尺寸並結案",
+        "no_qa_items": "🎉 目前暫無待驗收項目",
+        "wear_all": "全部顯示",
+        "wear_sel": "🔍 選擇要查詢的試磨件編號",
+        "stat_start": "起始日期",
+        "stat_end": "結束日期",
+        "stat_user_title": "👤 人員借用活躍度排行",
+        "stat_item_title": "🔥 試磨件熱門排行 (周轉率)",
+        "stat_no_data": "此區間無紀錄。",
+        "scrap_warn": "⚠️ 系統偵測到有 {} 個試磨件已達汰換標準，建議盡速處理！",
+        "scrap_sel": "請選擇要執行報廢的試磨件",
+        "scrap_ph": "-- 請選擇 --",
+        "scrap_note": "📝 報廢原因 / 備註 (必填)",
+        "scrap_btn": "🚨 確認報廢",
+        "scrap_err": "⚠️ 為了後續追蹤，請務必填寫報廢原因！",
+        "sys_user_add": "#### 👤 人員增減",
+        "sys_user_name": "➕ 新增人員姓名",
+        "sys_btn_add": "新增人員",
+        "sys_user_del": "➖ 刪除人員 (離職/轉調)",
+        "sys_btn_del": "刪除此人員",
+        "sys_item_add": "#### 📦 新品試磨件入庫",
+        "sys_item_id": "1. 試磨件編號 (必填，不可重複)",
+        "sys_item_name": "2. 品項名稱 (必填)",
+        "sys_item_spec": "3. 測量規格與目標值 (選填)",
+        "sys_btn_item": "➕ 確認新品入庫"
     },
     "en": {
         "sidebar_role": "Select Your Role",
         "role_user": "User (Operation)",
         "role_admin": "Admin (Backend)",
         "sidebar_lang": "Language / 語言",
-        "app_title": "☁️ abrasive parts lending System",
+        "app_title": "☁️ Standard Test Piece System",  # 💡 英文也同步正名
         "loading": "Loading data, please wait...",
         "sel_name": "Please select your name",
         "sel_machine": "Machine No. (Optional)",
@@ -90,7 +113,7 @@ LANG_DICT = {
         "tab_status": "Status 🔍",
         "filter_cat": "📁 Category Filter",
         "all_cat": "All Categories",
-        "stock_title": "#### ✅ Available Gauges",
+        "stock_title": "#### ✅ Available Test Pieces",  # 💡 英文也同步正名
         "no_stock": "No items available in this category.",
         "btn_borrow": "Borrow",
         "err_name": "⚠️ Please select your name at the top first!",
@@ -119,7 +142,6 @@ LANG_DICT = {
         "menu_scrap": "🗑️ Scrapping",
         "menu_logs": "📝 All Logs",
         "menu_sys": "⚙️ Settings",
-        # Database Status Mapping (For Display)
         "db_可借出": "Available",
         "db_已借出": "Borrowed",
         "db_待確認": "Pending QA",
@@ -136,7 +158,31 @@ LANG_DICT = {
         "judge_pass": "Pass",
         "judge_fail": "Replace",
         "measure_val": "Measure",
-        "btn_confirm_return": "Confirm & Close Case"
+        "btn_confirm_return": "Confirm & Close Case",
+        "no_qa_items": "🎉 No items pending QA currently.",
+        "wear_all": "All",
+        "wear_sel": "🔍 Select Test Piece ID",
+        "stat_start": "Start Date",
+        "stat_end": "End Date",
+        "stat_user_title": "👤 Top Users",
+        "stat_item_title": "🔥 Top Borrowed Items",
+        "stat_no_data": "No records found in this period.",
+        "scrap_warn": "⚠️ {} items need replacement!",
+        "scrap_sel": "Select item to scrap",
+        "scrap_ph": "-- Select --",
+        "scrap_note": "📝 Reason for scrapping (Required)",
+        "scrap_btn": "🚨 Confirm Scrap",
+        "scrap_err": "⚠️ Please provide a reason!",
+        "sys_user_add": "#### 👤 Add/Remove User",
+        "sys_user_name": "➕ New User Name",
+        "sys_btn_add": "Add User",
+        "sys_user_del": "➖ Remove User",
+        "sys_btn_del": "Remove",
+        "sys_item_add": "#### 📦 Add New Test Piece",
+        "sys_item_id": "1. Test Piece ID (Unique)",
+        "sys_item_name": "2. Category Name",
+        "sys_item_spec": "3. Specs & Targets (Optional)",
+        "sys_btn_item": "➕ Add Test Piece"
     }
 }
 
@@ -306,7 +352,7 @@ def main():
     if not df_logs_check.empty and 'pre_size' not in df_logs_check.columns:
         st.stop()
 
-    # 🌐 語言切換區 (放置在側邊欄最上方)
+    # 🌐 語言切換區
     st.sidebar.markdown(f"**{t('sidebar_lang')}**")
     lang_selection = st.sidebar.radio("Lang", ["中文", "English"], label_visibility="collapsed", horizontal=True)
     st.session_state['lang'] = 'zh' if lang_selection == "中文" else 'en'
@@ -402,7 +448,6 @@ def main():
 
         elif user_menu == t('tab_status'):
             disp_df = df_g[['id', 'category', 'status', 'current_user']].copy()
-            # 翻譯 Dataframe 欄位與狀態內容
             disp_df.rename(columns={'id': t('col_id'), 'category': t('col_cat'), 'status': t('col_status'),
                                     'current_user': t('col_user')}, inplace=True)
             disp_df[t('col_status')] = disp_df[t('col_status')].apply(lambda x: t(f"db_{x}"))
@@ -429,10 +474,11 @@ def main():
             admin_menu = st.radio("Admin Menu", admin_menu_opts, horizontal=True, label_visibility="collapsed",
                                   key="admin_menu_state")
 
+            # --- 1. 歸還驗收 ---
             if admin_menu == t('menu_qa'):
                 pending = df_g[df_g['status'] == '待確認']
                 if pending.empty:
-                    st.success("🎉")
+                    st.success(t('no_qa_items'))
                 for _, row in pending.iterrows():
                     with st.expander(f"📦 {t('col_id')}: {row['id']} | {t('col_user')}: {row['current_user']}",
                                      expanded=True):
@@ -488,6 +534,7 @@ def main():
                                           new_status=final_status)
                                 st.rerun()
 
+            # --- 2. 尺寸總表 ---
             elif admin_menu == t('menu_list'):
                 if not df_g.empty:
                     summary_data = []
@@ -560,14 +607,15 @@ def main():
                         st.dataframe(df_summary.style.map(highlight_ng, subset=[t('col_judge'), t('col_status')]),
                                      use_container_width=True, hide_index=True)
 
+            # --- 3. 磨耗追蹤 ---
             elif admin_menu == t('menu_wear'):
                 st.subheader(t('menu_wear'))
                 if not df_g.empty and not df_logs.empty and 'post_size' in df_logs.columns:
-                    opts = ["All"] + df_g['id'].astype(str).tolist()
-                    target_id = st.selectbox("ID", opts)
+                    opts = [t('wear_all')] + df_g['id'].astype(str).tolist()
+                    target_id = st.selectbox(t('wear_sel'), opts)
                     valid_events = df_logs[df_logs['status'] == '已結案']
-                    if target_id != "All": valid_events = valid_events[
-                        valid_events['gauge_id'].astype(str) == str(target_id)]
+                    if target_id != t('wear_all'):
+                        valid_events = valid_events[valid_events['gauge_id'].astype(str) == str(target_id)]
                     if not valid_events.empty:
                         wear_data = []
                         for idx, row in valid_events.iterrows():
@@ -586,13 +634,124 @@ def main():
                                     })
                             except:
                                 continue
-                        if wear_data: st.dataframe(pd.DataFrame(wear_data).sort_values('Borrow Time', ascending=False),
-                                                   use_container_width=True, hide_index=True)
+                        if wear_data:
+                            st.dataframe(pd.DataFrame(wear_data).sort_values('Borrow Time', ascending=False),
+                                         use_container_width=True, hide_index=True)
+                        else:
+                            st.info("無法解析此區間的歷史尺寸 / Cannot parse history size.")
+                    else:
+                        st.info("尚無紀錄 / No full log found.")
 
-            # --- 4, 5, 6, 7 (簡易保留核心功能，減少長度) ---
-            elif admin_menu in [t('menu_stats'), t('menu_scrap'), t('menu_logs'), t('menu_sys')]:
-                st.info("System Backend / 系統後台操作")
-                if admin_menu == t('menu_logs'): st.dataframe(df_logs, use_container_width=True)
+            # --- 4. 數據統計 ---
+            elif admin_menu == t('menu_stats'):
+                st.subheader(t('menu_stats'))
+                if not df_logs.empty and 'borrow_time' in df_logs.columns:
+                    borrow_logs = df_logs[df_logs['borrow_time'] != ""].copy()
+                    if not borrow_logs.empty:
+                        borrow_logs['date'] = pd.to_datetime(borrow_logs['borrow_time']).dt.date
+                        min_date = borrow_logs['date'].min()
+                        max_date = borrow_logs['date'].max()
+                        col_date1, col_date2 = st.columns(2)
+                        with col_date1:
+                            start_date = st.date_input(t('stat_start'), min_date, min_value=min_date,
+                                                       max_value=max_date)
+                        with col_date2:
+                            end_date = st.date_input(t('stat_end'), max_date, min_value=min_date, max_value=max_date)
+
+                        mask = (borrow_logs['date'] >= start_date) & (borrow_logs['date'] <= end_date)
+                        filtered_logs = borrow_logs[mask]
+
+                        if not filtered_logs.empty:
+                            user_counts = filtered_logs['user'].value_counts().reset_index()
+                            user_counts.columns = [t('col_user'), 'Count']
+                            st.plotly_chart(px.bar(user_counts, x=t('col_user'), y='Count', title=t('stat_user_title'),
+                                                   text_auto=True, color='Count', color_continuous_scale='Blues'),
+                                            use_container_width=True)
+
+                            item_counts = filtered_logs['gauge_id'].value_counts().reset_index()
+                            item_counts.columns = [t('col_id'), 'Count']
+                            st.plotly_chart(px.bar(item_counts, x=t('col_id'), y='Count', title=t('stat_item_title'),
+                                                   text_auto=True, color='Count', color_continuous_scale='Teal'),
+                                            use_container_width=True)
+                        else:
+                            st.info(t('stat_no_data'))
+                    else:
+                        st.info(t('stat_no_data'))
+
+            # --- 5. 報廢汰換 ---
+            elif admin_menu == t('menu_scrap'):
+                st.subheader(t('menu_scrap'))
+                active_items = df_g[df_g['status'] != '已報廢']
+                if not active_items.empty:
+                    scrap_candidates = active_items[active_items['status'] == '需汰換']
+                    if not scrap_candidates.empty:
+                        st.warning(t('scrap_warn').format(len(scrap_candidates)))
+                    opts = active_items.apply(
+                        lambda x: f"{x['id']} - {x['category']} ({t('col_status')}: {t('db_' + x['status'])})",
+                        axis=1).tolist()
+                    sel_item = st.selectbox(t('scrap_sel'), [t('scrap_ph')] + opts)
+                    if sel_item != t('scrap_ph'):
+                        target_id = sel_item.split(" - ")[0]
+                        scrap_note = st.text_input(t('scrap_note'))
+                        if st.button(t('scrap_btn'), type="primary"):
+                            if scrap_note.strip():
+                                update_db(target_id, 'scrap', "Admin", note=scrap_note)
+                                st.success(f"✅ {target_id} OK!")
+                                st.rerun()
+                            else:
+                                st.error(t('scrap_err'))
+                else:
+                    st.info("No items.")
+
+            # --- 6. 事件總紀錄 ---
+            elif admin_menu == t('menu_logs'):
+                st.subheader(t('menu_logs'))
+                st.dataframe(df_logs, use_container_width=True)
+
+            # --- 7. 系統基本設定 ---
+            elif admin_menu == t('menu_sys'):
+                st.subheader(t('menu_sys'))
+                col_sys1, col_sys2 = st.columns(2)
+                with col_sys1:
+                    st.markdown(t('sys_user_add'))
+                    with st.container(border=True):
+                        new_user = st.text_input(t('sys_user_name'))
+                        if st.button(t('sys_btn_add')):
+                            if new_user.strip() and new_user not in user_list:
+                                ws_users.append_row([new_user.strip()])
+                                get_all_data.clear('users')
+                                st.success("✅ OK")
+                                st.rerun()
+                        st.divider()
+                        del_user = st.selectbox(t('sys_user_del'), ["--"] + user_list)
+                        if st.button(t('sys_btn_del'), type="primary"):
+                            if del_user != "--":
+                                try:
+                                    row_idx = int(df_users[df_users['name'].astype(str) == str(del_user)].index[0]) + 2
+                                    ws_users.delete_rows(row_idx)
+                                    get_all_data.clear('users')
+                                    st.success("🗑️ OK")
+                                    st.rerun()
+                                except:
+                                    pass
+
+                with col_sys2:
+                    st.markdown(t('sys_item_add'))
+                    with st.container(border=True):
+                        with st.form("add_gauge_form"):
+                            new_id = st.text_input(t('sys_item_id'))
+                            new_cat = st.text_input(t('sys_item_name'))
+                            new_spec = st.text_input(t('sys_item_spec'))
+                            if st.form_submit_button(t('sys_btn_item'), type="primary"):
+                                if new_id.strip() and new_cat.strip():
+                                    if str(new_id) in df_g['id'].astype(str).tolist():
+                                        st.error("⚠️ ID exists!")
+                                    else:
+                                        ws_gauges.append_row(
+                                            [new_id.strip(), new_cat.strip(), new_spec.strip(), "可借出", "", "", ""])
+                                        get_all_data.clear('gauges')
+                                        st.success("✅ OK")
+                                        st.rerun()
 
         else:
             st.warning(t('admin_err_pwd'))
