@@ -79,7 +79,6 @@ def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="
         curr_note = str(df_g.loc[g_idx, 'note'])
         pre_dict = {}
         if curr_note and curr_note != 'nan':
-            # 💡 升級：支援多種分隔符號轉換
             norm_note = curr_note.replace(",", "|").replace("，", "|").replace(";", "|").replace("；", "|")
             for p in norm_note.split("|"):
                 if ":" in p:
@@ -328,7 +327,7 @@ def main():
                                           new_status=final_status)
                                 st.rerun()
 
-            # --- 2. 尺寸總表 (✨ 萬能標點符號解析版) ---
+            # --- 2. 尺寸總表 ---
             elif admin_menu == "📋 尺寸總表":
                 st.subheader("📋 試磨件當前尺寸總表")
                 if not df_g.empty:
@@ -353,7 +352,6 @@ def main():
                         current_vals = {}
 
                         if raw_note:
-                            # 💡 萬能轉換：把逗號、全形逗號、分號全部轉成系統看得懂的直柱 |
                             norm_note = raw_note.replace(",", "|").replace("，", "|").replace(";", "|").replace("；", "|")
                             parts = norm_note.split("|")
                             for p in parts:
@@ -370,7 +368,6 @@ def main():
                         for reg, target in regions_info.items():
                             curr = current_vals.get(reg, None)
 
-                            # 防呆：如果只有一個測量部位，且抓不到特定標籤，就把整段純數字當作現值
                             if curr is None and not current_vals and len(regions_info) == 1 and raw_note:
                                 try:
                                     curr = float(raw_note)
@@ -391,7 +388,6 @@ def main():
                                     "判斷": judge if target is not None else "-"
                                 })
                             else:
-                                # 💡 顯示防呆：多部位測量時，若缺少資料顯示無對應紀錄，避免版面炸裂
                                 display_val = raw_note if (len(regions_info) == 1 and raw_note) else "無對應紀錄"
                                 summary_data.append({
                                     "品項 (編號)": f"{row['category']} ({row['id']})",
@@ -409,7 +405,8 @@ def main():
                         def highlight_ng(val):
                             return f'background-color: #ffcccc' if val in ['NG', '需汰換'] else ''
 
-                        st.dataframe(df_summary.style.applymap(highlight_ng, subset=['判斷', '狀態']),
+                        # 💡 修復點：將 df_summary.style.applymap 改為 df_summary.style.map
+                        st.dataframe(df_summary.style.map(highlight_ng, subset=['判斷', '狀態']),
                                      use_container_width=True, hide_index=True)
 
             # --- 3. 磨耗追蹤 ---
