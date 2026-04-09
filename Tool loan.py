@@ -152,11 +152,18 @@ def confirm_no_machine(gauge_id, current_user):
 def main():
     st.set_page_config(page_title="標準試磨件管理系統", layout="wide")
 
+    # 💡 升級點：加入隱藏手機鍵盤的專屬 CSS
     st.markdown("""
         <style>
         .stButton > button { font-size: 18px !important; height: 2.8em !important; width: 100%; border-radius: 6px; }
         .stAlert { padding-top: 0.5rem; padding-bottom: 0.5rem; }
         p, div, label { font-size: 18px !important; }
+
+        /* 🚀 強制關閉下拉選單的輸入與游標功能，徹底阻止手機鍵盤彈出 */
+        div[data-baseweb="select"] input {
+            pointer-events: none !important;
+            caret-color: transparent !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -405,7 +412,6 @@ def main():
                         def highlight_ng(val):
                             return f'background-color: #ffcccc' if val in ['NG', '需汰換'] else ''
 
-                        # 💡 修復點：將 df_summary.style.applymap 改為 df_summary.style.map
                         st.dataframe(df_summary.style.map(highlight_ng, subset=['判斷', '狀態']),
                                      use_container_width=True, hide_index=True)
 
