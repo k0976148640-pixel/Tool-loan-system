@@ -9,7 +9,7 @@ import json
 import streamlit.components.v1 as components
 
 # ==========================================
-# 🌐 語言翻譯辭典庫 (i18n) - 100% 完整無損還原版
+# 🌐 語言翻譯辭典庫 (i18n)
 # ==========================================
 LANG_DICT = {
     "zh": {
@@ -61,8 +61,6 @@ LANG_DICT = {
         "db_待確認": "待確認",
         "db_需汰換": "需汰換",
         "db_已報廢": "已報廢",
-
-        # --- 表格欄位名稱 (中文回歸) ---
         "col_id": "編號",
         "col_cat": "品項",
         "col_status": "狀態",
@@ -84,8 +82,6 @@ LANG_DICT = {
         "judge_fail": "需汰換",
         "measure_val": "實測",
         "btn_confirm_return": "確認尺寸並結案",
-
-        # --- 後台介面文字 (中文回歸) ---
         "no_qa_items": "🎉 目前暫無待驗收項目",
         "txt_machine": "使用機台",
         "txt_target": "標準",
@@ -106,19 +102,25 @@ LANG_DICT = {
         "scrap_sel": "請選擇要執行報廢的試磨件",
         "scrap_ph": "-- 請選擇 --",
         "scrap_note": "📝 報廢原因 / 備註 (必填)",
+        "scrap_note_ph": "例如：磨損超過5mm容許值，依規定報廢",
         "scrap_btn": "🚨 確認報廢",
         "scrap_err": "⚠️ 為了後續追蹤，請務必填寫報廢原因！",
         "scrap_none": "目前無可報廢的試磨件。",
         "log_desc": "📊 這裡呈現的是完整的週期事件 (每個橫列代表一次借用~歸還的資訊)",
+        "sys_desc": "無需開啟 Google Sheet，您可直接在此新增人員或將新購買的試磨件入庫。",
         "sys_user_add": "#### 👤 人員增減",
         "sys_user_name": "➕ 新增人員姓名",
+        "sys_user_name_ph": "請輸入全名",
         "sys_btn_add": "新增人員",
         "sys_user_del": "➖ 刪除人員 (離職/轉調)",
         "sys_btn_del": "刪除此人員",
         "sys_item_add": "#### 📦 新品試磨件入庫",
         "sys_item_id": "1. 試磨件編號 (必填，不可重複)",
+        "sys_item_id_ph": "例如: 25-短軸-E",
         "sys_item_name": "2. 品項名稱 (必填)",
+        "sys_item_name_ph": "例如: 25 短軸E",
         "sys_item_spec": "3. 測量規格與目標值 (選填)",
+        "sys_item_spec_ph": "例如: OD40(短)=40, OD50=50",
         "sys_spec_tip": "💡 規格請嚴格遵守 `部位名稱=目標值`，多個部位請用 `,` 隔開。",
         "sys_btn_item": "➕ 確認新品入庫",
         "sys_err_exist": "⚠️ 此「編號」已經存在於系統中，請確認是否打錯或是更改新編號！",
@@ -179,7 +181,6 @@ LANG_DICT = {
         "db_待確認": "Pending QA",
         "db_需汰換": "Replace",
         "db_已報廢": "Scrapped",
-
         "col_id": "ID",
         "col_cat": "Category",
         "col_status": "Status",
@@ -201,7 +202,6 @@ LANG_DICT = {
         "judge_fail": "Replace",
         "measure_val": "Measure",
         "btn_confirm_return": "Confirm & Close Case",
-
         "no_qa_items": "🎉 No items pending QA currently.",
         "txt_machine": "Machine",
         "txt_target": "Target",
@@ -222,19 +222,25 @@ LANG_DICT = {
         "scrap_sel": "Select item to scrap",
         "scrap_ph": "-- Select --",
         "scrap_note": "📝 Reason for scrapping (Required)",
+        "scrap_note_ph": "e.g., Worn out > 5mm, scrapped per policy",
         "scrap_btn": "🚨 Confirm Scrap",
         "scrap_err": "⚠️ Please provide a reason!",
         "scrap_none": "No items to scrap.",
         "log_desc": "📊 Full lifecycle events (Each row is a complete borrow-return cycle)",
+        "sys_desc": "No need to open Google Sheets. Add users or new test pieces directly here.",
         "sys_user_add": "#### 👤 Add/Remove User",
         "sys_user_name": "➕ New User Name",
+        "sys_user_name_ph": "Enter full name",
         "sys_btn_add": "Add User",
         "sys_user_del": "➖ Remove User",
         "sys_btn_del": "Remove",
         "sys_item_add": "#### 📦 Add New Test Piece",
         "sys_item_id": "1. Test Piece ID (Unique)",
+        "sys_item_id_ph": "e.g. 25-Shaft-E",
         "sys_item_name": "2. Category Name",
+        "sys_item_name_ph": "e.g. 25 Shaft E",
         "sys_item_spec": "3. Specs & Targets (Optional)",
+        "sys_item_spec_ph": "e.g. OD40(S)=40, OD50=50",
         "sys_spec_tip": "💡 Format strictly: `Part=Value`, separated by `,`.",
         "sys_btn_item": "➕ Add Test Piece",
         "sys_err_exist": "⚠️ ID already exists!",
@@ -512,7 +518,6 @@ def main():
             disp_df = df_g[['id', 'category', 'status', 'current_user']].copy()
             disp_df.rename(columns={'id': t('col_id'), 'category': t('col_cat'), 'status': t('col_status'),
                                     'current_user': t('col_user')}, inplace=True)
-            # 安全翻譯狀態，若字典找不到就保留原字
             lang = st.session_state.get('lang', 'zh')
             disp_df[t('col_status')] = disp_df[t('col_status')].apply(
                 lambda x: t(f"db_{x}") if f"db_{x}" in LANG_DICT[lang] else x)
@@ -766,7 +771,8 @@ def main():
 
                     if sel_item != t('scrap_ph'):
                         target_id = sel_item.split(" - ")[0]
-                        scrap_note = st.text_input(t('scrap_note'))
+                        # 💡 加回 Placeholder
+                        scrap_note = st.text_input(t('scrap_note'), placeholder=t('scrap_note_ph'))
                         if st.button(t('scrap_btn'), type="primary"):
                             if scrap_note.strip():
                                 update_db(target_id, 'scrap', "Admin", note=scrap_note)
@@ -786,11 +792,15 @@ def main():
             # --- 7. 系統基本設定 ---
             elif admin_menu == t('menu_sys'):
                 st.subheader(t('menu_sys'))
+                # 💡 加回系統描述文字
+                st.write(t('sys_desc'))
+
                 col_sys1, col_sys2 = st.columns(2)
                 with col_sys1:
                     st.markdown(t('sys_user_add'))
                     with st.container(border=True):
-                        new_user = st.text_input(t('sys_user_name'))
+                        # 💡 加回 Placeholder
+                        new_user = st.text_input(t('sys_user_name'), placeholder=t('sys_user_name_ph'))
                         if st.button(t('sys_btn_add')):
                             if new_user.strip() and new_user not in user_list:
                                 ws_users.append_row([new_user.strip()])
@@ -821,9 +831,10 @@ def main():
                     st.markdown(t('sys_item_add'))
                     with st.container(border=True):
                         with st.form("add_gauge_form"):
-                            new_id = st.text_input(t('sys_item_id'))
-                            new_cat = st.text_input(t('sys_item_name'))
-                            new_spec = st.text_input(t('sys_item_spec'))
+                            # 💡 加回 Placeholders
+                            new_id = st.text_input(t('sys_item_id'), placeholder=t('sys_item_id_ph'))
+                            new_cat = st.text_input(t('sys_item_name'), placeholder=t('sys_item_name_ph'))
+                            new_spec = st.text_input(t('sys_item_spec'), placeholder=t('sys_item_spec_ph'))
                             st.caption(t('sys_spec_tip'))
 
                             if st.form_submit_button(t('sys_btn_item'), type="primary"):
