@@ -118,7 +118,7 @@ LANG_DICT = {
         "sys_item_id": "1. 試磨件編號 (必填，不可重複)",
         "sys_item_id_ph": "例如: 25-短軸-E",
         "sys_item_name": "2. 品項名稱 (必填)",
-        "sys_item_name_ph": "例如: 25 短軸E",
+        "sys_item_name_ph": "例如: 外圓or內圓or平面",
         "sys_item_spec": "3. 測量規格與目標值 (選填)",
         "sys_item_spec_ph": "例如: OD40(短)=40, OD50=50",
         "sys_spec_tip": "💡 規格請嚴格遵守 `部位名稱=目標值`，多個部位請用 `,` 隔開。",
