@@ -103,9 +103,21 @@ LANG_DICT = {
         "scrap_ph": "-- 請選擇 --",
         "scrap_note": "📝 報廢原因 / 備註 (必填)",
         "scrap_note_ph": "例如：磨損超過5mm容許值，依規定報廢",
-        "scrap_btn": "🚨 確認報廢",
+        "scrap_btn": "🚨 確認執行",
         "scrap_err": "⚠️ 為了後續追蹤，請務必填寫報廢原因！",
         "scrap_none": "目前無可報廢的試磨件。",
+        "scrap_replace_title": "🔄 新品同步替換",
+        "scrap_replace_tip": "💡 報廢舊品的同時，直接沿用原編號上架同規格新品。",
+        "scrap_cb_replace": "報廢並換上新品 (沿用編號)",
+        "scrap_ok_both": "✅ 已成功報廢舊品，並同步將新品 [{}] 錄入尺寸重新上架！",
+        "scrap_ok_only": "✅ [{}] 報廢完成！資料已從庫存表中移除。",
+
+        "log_scrap_replaced": "【已同步替換新品】",
+        "log_new_arrival": "新品入庫",
+        "log_sys_add": "系統新增",
+        "log_scrap_add": "報廢替換",
+        "sys_init_size": "📝 錄入初始現值",
+
         "log_desc": "📊 這裡呈現的是完整的週期事件 (每個橫列代表一次借用~歸還的資訊)",
         "sys_desc": "您可直接在此新增人員或將新購買的試磨件入庫。",
         "sys_user_add": "#### 👤 人員增減",
@@ -223,9 +235,21 @@ LANG_DICT = {
         "scrap_ph": "-- Select --",
         "scrap_note": "📝 Reason for scrapping (Required)",
         "scrap_note_ph": "e.g., Worn out > 5mm, scrapped per policy",
-        "scrap_btn": "🚨 Confirm Scrap",
+        "scrap_btn": "🚨 Confirm Action",
         "scrap_err": "⚠️ Please provide a reason!",
         "scrap_none": "No items to scrap.",
+        "scrap_replace_title": "🔄 Replace with New",
+        "scrap_replace_tip": "💡 Scrap the old item and immediately replace it with a new one using the same ID.",
+        "scrap_cb_replace": "Scrap & Replace (Keep ID)",
+        "scrap_ok_both": "✅ Scrapped old item and successfully registered new measurements for [{}]!",
+        "scrap_ok_only": "✅ [{}] Scrapped and removed from active list!",
+
+        "log_scrap_replaced": "[Replaced with New]",
+        "log_new_arrival": "New Arrival",
+        "log_sys_add": "System Added",
+        "log_scrap_add": "Scrap Replace",
+        "sys_init_size": "📝 Enter Initial Measurements",
+
         "log_desc": "📊 Full lifecycle events (Each row is a complete borrow-return cycle)",
         "sys_desc": "Add users or new test pieces directly here.",
         "sys_user_add": "#### 👤 Add/Remove User",
@@ -255,7 +279,6 @@ LANG_DICT = {
 }
 
 
-# 取得翻譯小幫手
 def t(key):
     lang = st.session_state.get('lang', 'zh')
     return LANG_DICT[lang].get(key, key)
@@ -316,10 +339,11 @@ def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="
     df_g = get_all_data('gauges')
     df_l = get_all_data('logs')
     try:
-        g_idx = df_g[df_g['id'].astype(str) == str(gauge_id)].index[0]
+        g_idx = df_g[df_g['id'].astype(str).str.strip() == str(gauge_id).strip()].index[0]
         g_row = int(g_idx) + 2
     except:
         return
+
     if action == 'borrow':
         curr_note = str(df_g.loc[g_idx, 'note'])
         pre_dict = {}
@@ -331,37 +355,48 @@ def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="
                     if len(sp) == 2: pre_dict[sp[0].strip()] = sp[1].strip()
         pre_size_json = json.dumps(pre_dict, ensure_ascii=False)
         ws_gauges.update(range_name=f'D{g_row}:F{g_row}', values=[['已借出', user, now_tw]])
-        ws_logs.append_row([str(gauge_id), user, machine_no, now_tw, "", pre_size_json, "", "使用中", ""])
+        ws_logs.append_row([str(gauge_id).strip(), user, machine_no, now_tw, "", pre_size_json, "", "使用中", ""])
+
     elif action == 'return_request':
         ws_gauges.update(range_name=f'D{g_row}', values=[['待確認']])
         if not df_l.empty and 'gauge_id' in df_l.columns:
-            open_sessions = df_l[(df_l['gauge_id'].astype(str) == str(gauge_id)) & (df_l['status'] == '使用中')]
+            open_sessions = df_l[
+                (df_l['gauge_id'].astype(str).str.strip() == str(gauge_id).strip()) &
+                (df_l['status'].astype(str).str.strip() == '使用中')
+                ]
             if not open_sessions.empty:
                 l_idx = open_sessions.index[-1]
                 l_row = int(l_idx) + 2
                 ws_logs.update(range_name=f'H{l_row}', values=[['待驗收']])
+
     elif action == 'confirm_return':
         val_str = " | ".join([f"{k}:{v}" for k, v in val_dict.items()])
         ws_gauges.update(range_name=f'D{g_row}:G{g_row}', values=[[new_status, '', '', val_str]])
         if not df_l.empty and 'gauge_id' in df_l.columns:
             open_sessions = df_l[
-                (df_l['gauge_id'].astype(str) == str(gauge_id)) & (df_l['status'].isin(['使用中', '待驗收']))]
+                (df_l['gauge_id'].astype(str).str.strip() == str(gauge_id).strip()) &
+                (df_l['status'].astype(str).str.strip().isin(['使用中', '待驗收']))
+                ]
             if not open_sessions.empty:
                 l_idx = open_sessions.index[-1]
                 l_row = int(l_idx) + 2
                 pre_size = str(df_l.loc[l_idx, 'pre_size'])
                 post_json = json.dumps(val_dict, ensure_ascii=False)
                 ws_logs.update(range_name=f'E{l_row}:H{l_row}', values=[[now_tw, pre_size, post_json, "已結案"]])
+
     elif action == 'scrap':
-        ws_gauges.update(range_name=f'D{g_row}:E{g_row}', values=[['已報廢', '']])
-        ws_logs.append_row([str(gauge_id), user, "", now_tw, now_tw, "", "", "已報廢", note])
-    get_all_data.clear('gauges')
-    get_all_data.clear('logs')
+        # 💡 核心變更：將報廢的資料從 gauges 庫存表徹底刪除
+        ws_gauges.delete_rows(g_row)
+        # 紀錄寫入 logs 保存歷史
+        ws_logs.append_row([str(gauge_id).strip(), user, "", now_tw, now_tw, "", "", "已報廢", note])
+
+    get_all_data.clear()
 
 
 def get_last_sizes(df_logs, gauge_id):
     if df_logs.empty or 'post_size' not in df_logs.columns: return {}
-    history = df_logs[(df_logs['gauge_id'].astype(str) == str(gauge_id)) & (df_logs['post_size'] != "")]
+    history = df_logs[
+        (df_logs['gauge_id'].astype(str).str.strip() == str(gauge_id).strip()) & (df_logs['post_size'] != "")]
     if history.empty: return {}
     last_record = history.sort_values('return_time', ascending=False).iloc[0]
     try:
@@ -388,7 +423,6 @@ def confirm_no_machine(gauge_id, current_user):
 def main():
     st.set_page_config(page_title="標準試磨件管理系統", layout="wide")
 
-    # 手機鍵盤封印腳本
     components.html(
         """
         <script>
@@ -420,7 +454,6 @@ def main():
     if not df_logs_check.empty and 'pre_size' not in df_logs_check.columns:
         st.stop()
 
-    # 🌐 語言切換區
     st.sidebar.markdown(f"**{t('sidebar_lang')}**")
     lang_selection = st.sidebar.radio("Lang", ["中文", "English"], label_visibility="collapsed", horizontal=True)
     st.session_state['lang'] = 'zh' if lang_selection == "中文" else 'en'
@@ -456,6 +489,7 @@ def main():
         user_menu = st.radio("Menu", menu_opts, horizontal=True, label_visibility="collapsed", key="user_menu_state")
 
         if user_menu == t('tab_borrow'):
+            # 前台只會顯示仍在 gauges 表中的資料 (因為已報廢的會被徹底刪除)
             available = df_g[df_g['status'] == '可借出']
             categories = [t('all_cat')] + list(available['category'].unique()) if not available.empty else [
                 t('all_cat')]
@@ -531,9 +565,7 @@ def main():
         if st.sidebar.text_input(t('admin_pwd'), type="password") == "0000":
 
             if st.sidebar.button(t('btn_sync'), use_container_width=True):
-                get_all_data.clear('gauges')
-                get_all_data.clear('logs')
-                get_all_data.clear('users')
+                get_all_data.clear()
                 st.success(t('msg_sync'))
                 st.rerun()
 
@@ -555,7 +587,8 @@ def main():
                         m_info = "-"
                         if not df_logs.empty and 'gauge_id' in df_logs.columns:
                             open_sessions = df_logs[
-                                (df_logs['gauge_id'].astype(str) == str(row['id'])) & (df_logs['status'] == '待驗收')]
+                                (df_logs['gauge_id'].astype(str).str.strip() == str(row['id']).strip()) & (
+                                            df_logs['status'].str.strip() == '待驗收')]
                             if not open_sessions.empty:
                                 m_info = open_sessions['machine'].values[-1]
 
@@ -606,9 +639,11 @@ def main():
 
             # --- 2. 尺寸總表 ---
             elif admin_menu == t('menu_list'):
+                st.subheader("📋 試磨件當前尺寸總表")
                 if not df_g.empty:
                     summary_data = []
-                    active_df = df_g[df_g['status'] != '已報廢']
+                    # gauges 內皆為有效件，已報廢的不在表內
+                    active_df = df_g
 
                     for _, row in active_df.iterrows():
                         raw_specs = str(row['spec']).split(",") if row['spec'] else []
@@ -683,9 +718,10 @@ def main():
                 if not df_g.empty and not df_logs.empty and 'post_size' in df_logs.columns:
                     opts = [t('wear_all')] + df_g['id'].astype(str).tolist()
                     target_id = st.selectbox(t('wear_sel'), opts)
-                    valid_events = df_logs[df_logs['status'] == '已結案']
+                    valid_events = df_logs[df_logs['status'].astype(str).str.strip() == '已結案']
                     if target_id != t('wear_all'):
-                        valid_events = valid_events[valid_events['gauge_id'].astype(str) == str(target_id)]
+                        valid_events = valid_events[
+                            valid_events['gauge_id'].astype(str).str.strip() == str(target_id).strip()]
                     if not valid_events.empty:
                         wear_data = []
                         for idx, row in valid_events.iterrows():
@@ -754,10 +790,10 @@ def main():
                     else:
                         st.info(t('stat_no_log'))
 
-            # --- 5. 報廢汰換 ---
+            # --- 5. 報廢汰換 (邏輯重寫版) ---
             elif admin_menu == t('menu_scrap'):
                 st.subheader(t('menu_scrap'))
-                active_items = df_g[df_g['status'] != '已報廢']
+                active_items = df_g
                 if not active_items.empty:
                     scrap_candidates = active_items[active_items['status'] == '需汰換']
                     if not scrap_candidates.empty:
@@ -770,13 +806,69 @@ def main():
                     sel_item = st.selectbox(t('scrap_sel'), [t('scrap_ph')] + opts)
 
                     if sel_item != t('scrap_ph'):
-                        target_id = sel_item.split(" - ")[0]
-                        # 💡 加回 Placeholder
+                        target_id = sel_item.split(" - ")[0].strip()
+                        old_row = active_items[active_items['id'].astype(str).str.strip() == str(target_id)].iloc[0]
+
+                        st.markdown("---")
                         scrap_note = st.text_input(t('scrap_note'), placeholder=t('scrap_note_ph'))
-                        if st.button(t('scrap_btn'), type="primary"):
+
+                        st.markdown(f"#### {t('scrap_replace_title')}")
+                        st.info(t('scrap_replace_tip'))
+                        do_replace = st.checkbox(t('scrap_cb_replace'), value=True)
+
+                        measured_vals = {}
+                        if do_replace:
+                            raw_specs = str(old_row['spec']).split(",") if old_row['spec'] else []
+                            regions_info = {}
+                            for s in raw_specs:
+                                s = s.strip()
+                                if "=" in s:
+                                    split_res = s.split("=", 1)
+                                    if len(split_res) == 2:
+                                        try:
+                                            regions_info[split_res[0].strip()] = float(split_res[1].strip())
+                                        except:
+                                            regions_info[split_res[0].strip()] = None
+                                else:
+                                    if s: regions_info[s] = None
+
+                            if not regions_info: regions_info = {"Value": None}
+
+                            st.markdown(f"**{t('sys_init_size')}**")
+                            cols = st.columns(len(regions_info))
+                            for idx, (reg, target) in enumerate(regions_info.items()):
+                                target_text = f"{target}" if target is not None else "-"
+                                cols[idx].caption(f"🎯 {t('txt_target')}: {target_text}")
+                                default_val = float(target) if target is not None else 0.0
+                                measured_vals[reg] = cols[idx].number_input(f"{reg}", format="%.3f", value=default_val,
+                                                                            key=f"scrap_{reg}")
+
+                        st.markdown("---")
+                        if st.button(t('scrap_btn'), type="primary", use_container_width=True):
                             if scrap_note.strip():
-                                update_db(target_id, 'scrap', "Admin", note=scrap_note)
-                                st.success(f"✅ {target_id} OK!")
+                                if do_replace:
+                                    # 1. 舊品報廢 (直接把舊的從 gauges 刪除)，備註加上替換標籤
+                                    scrap_msg = f"{scrap_note} {t('log_scrap_replaced')}"
+                                    update_db(target_id, 'scrap', "Admin", note=scrap_msg)
+
+                                    # 2. 將新品作為「全新的一列」直接塞入 gauges 庫存表的最下方，狀態為可借出
+                                    val_str = " | ".join([f"{k}:{v}" for k, v in measured_vals.items()])
+                                    ws_gauges.append_row(
+                                        [target_id, old_row['category'], old_row['spec'], "可借出", "", "", val_str])
+
+                                    # 3. 獨立新增一筆「新品入庫」的日誌
+                                    now_tw = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+                                    post_json = json.dumps(measured_vals, ensure_ascii=False)
+                                    ws_logs.append_row(
+                                        [str(target_id).strip(), "Admin", "", now_tw, now_tw, "", post_json,
+                                         t('log_new_arrival'), t('log_scrap_add')])
+
+                                    get_all_data.clear()
+                                    st.success(t('scrap_ok_both').format(target_id))
+                                else:
+                                    # 單純報廢 (直接刪除該列)
+                                    update_db(target_id, 'scrap', "Admin", note=scrap_note)
+                                    st.success(t('scrap_ok_only').format(target_id))
                                 st.rerun()
                             else:
                                 st.error(t('scrap_err'))
@@ -789,22 +881,21 @@ def main():
                 st.write(t('log_desc'))
                 st.dataframe(df_logs, use_container_width=True)
 
-            # --- 7. 系統基本設定 ---
+            # --- 7. 系統基本設定 (動態尺寸輸入版) ---
             elif admin_menu == t('menu_sys'):
                 st.subheader(t('menu_sys'))
-                # 💡 加回系統描述文字
                 st.write(t('sys_desc'))
 
                 col_sys1, col_sys2 = st.columns(2)
+
                 with col_sys1:
                     st.markdown(t('sys_user_add'))
                     with st.container(border=True):
-                        # 💡 加回 Placeholder
                         new_user = st.text_input(t('sys_user_name'), placeholder=t('sys_user_name_ph'))
                         if st.button(t('sys_btn_add')):
                             if new_user.strip() and new_user not in user_list:
                                 ws_users.append_row([new_user.strip()])
-                                get_all_data.clear('users')
+                                get_all_data.clear()
                                 st.success(t('sys_ok_user').format(new_user))
                                 st.rerun()
                             elif new_user in user_list:
@@ -817,9 +908,10 @@ def main():
                         if st.button(t('sys_btn_del'), type="primary"):
                             if del_user != "--":
                                 try:
-                                    row_idx = int(df_users[df_users['name'].astype(str) == str(del_user)].index[0]) + 2
+                                    row_idx = int(df_users[df_users['name'].astype(str).str.strip() == str(
+                                        del_user).strip()].index[0]) + 2
                                     ws_users.delete_rows(row_idx)
-                                    get_all_data.clear('users')
+                                    get_all_data.clear()
                                     st.success(t('sys_del_ok').format(del_user))
                                     st.rerun()
                                 except:
@@ -830,25 +922,60 @@ def main():
                 with col_sys2:
                     st.markdown(t('sys_item_add'))
                     with st.container(border=True):
-                        with st.form("add_gauge_form"):
-                            # 💡 加回 Placeholders
-                            new_id = st.text_input(t('sys_item_id'), placeholder=t('sys_item_id_ph'))
-                            new_cat = st.text_input(t('sys_item_name'), placeholder=t('sys_item_name_ph'))
-                            new_spec = st.text_input(t('sys_item_spec'), placeholder=t('sys_item_spec_ph'))
-                            st.caption(t('sys_spec_tip'))
+                        new_id = st.text_input(t('sys_item_id'), placeholder=t('sys_item_id_ph'))
+                        new_cat = st.text_input(t('sys_item_name'), placeholder=t('sys_item_name_ph'))
+                        new_spec = st.text_input(t('sys_item_spec'), placeholder=t('sys_item_spec_ph'))
+                        st.caption(t('sys_spec_tip'))
 
-                            if st.form_submit_button(t('sys_btn_item'), type="primary"):
-                                if new_id.strip() and new_cat.strip():
-                                    if str(new_id) in df_g['id'].astype(str).tolist():
-                                        st.error(t('sys_err_exist'))
-                                    else:
-                                        ws_gauges.append_row(
-                                            [new_id.strip(), new_cat.strip(), new_spec.strip(), "可借出", "", "", ""])
-                                        get_all_data.clear('gauges')
-                                        st.success(t('sys_ok_add').format(new_id))
-                                        st.rerun()
+                        # 即時解析規格並顯示現值輸入框
+                        raw_specs = str(new_spec).split(",") if new_spec else []
+                        regions_info = {}
+                        for s in raw_specs:
+                            s = s.strip()
+                            if "=" in s:
+                                split_res = s.split("=", 1)
+                                if len(split_res) == 2:
+                                    try:
+                                        regions_info[split_res[0].strip()] = float(split_res[1].strip())
+                                    except:
+                                        regions_info[split_res[0].strip()] = None
+                            elif s:
+                                regions_info[s] = None
+
+                        measured_vals = {}
+                        if regions_info:
+                            st.markdown(f"**{t('sys_init_size')}**")
+                            cols = st.columns(len(regions_info))
+                            for idx, (reg, target) in enumerate(regions_info.items()):
+                                target_text = f"{target}" if target is not None else "-"
+                                cols[idx].caption(f"🎯 {t('txt_target')}: {target_text}")
+                                default_val = float(target) if target is not None else 0.0
+                                measured_vals[reg] = cols[idx].number_input(f"{reg}", format="%.3f", value=default_val,
+                                                                            key=f"new_item_{reg}")
+
+                        st.markdown("---")
+                        if st.button(t('sys_btn_item'), type="primary", use_container_width=True):
+                            if new_id.strip() and new_cat.strip():
+                                if str(new_id.strip()) in df_g['id'].astype(str).str.strip().tolist():
+                                    st.error(t('sys_err_exist'))
                                 else:
-                                    st.error(t('sys_err_empty'))
+                                    # 1. 寫入庫存
+                                    val_str = " | ".join(
+                                        [f"{k}:{v}" for k, v in measured_vals.items()]) if measured_vals else ""
+                                    ws_gauges.append_row(
+                                        [new_id.strip(), new_cat.strip(), new_spec.strip(), "可借出", "", "", val_str])
+
+                                    # 2. 同步寫入日誌 (新品入庫)
+                                    now_tw = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+                                    post_json = json.dumps(measured_vals, ensure_ascii=False) if measured_vals else "{}"
+                                    ws_logs.append_row([str(new_id).strip(), "Admin", "", now_tw, now_tw, "", post_json,
+                                                        t('log_new_arrival'), t('log_sys_add')])
+
+                                    get_all_data.clear()
+                                    st.success(t('sys_ok_add').format(new_id))
+                                    st.rerun()
+                            else:
+                                st.error(t('sys_err_empty'))
 
         else:
             st.warning(t('admin_err_pwd'))
