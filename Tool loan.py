@@ -66,7 +66,7 @@ LANG_DICT = {
         "col_status": "狀態",
         "col_user": "使用者",
         "col_target": "目標值",
-        "col_current": "現值",
+        "col_current": "當前現值",  # 💡 前台顯示的名稱
         "col_remain": "剩餘研磨量",
         "col_judge": "判斷",
         "col_part": "部位",
@@ -198,7 +198,7 @@ LANG_DICT = {
         "col_status": "Status",
         "col_user": "User",
         "col_target": "Target",
-        "col_current": "Current",
+        "col_current": "Current Size",  # 💡 前台顯示的名稱
         "col_remain": "Remaining",
         "col_judge": "Judgment",
         "col_part": "Part",
@@ -385,9 +385,7 @@ def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="
                 ws_logs.update(range_name=f'E{l_row}:H{l_row}', values=[[now_tw, pre_size, post_json, "已結案"]])
 
     elif action == 'scrap':
-        # 💡 核心變更：將報廢的資料從 gauges 庫存表徹底刪除
         ws_gauges.delete_rows(g_row)
-        # 紀錄寫入 logs 保存歷史
         ws_logs.append_row([str(gauge_id).strip(), user, "", now_tw, now_tw, "", "", "已報廢", note])
 
     get_all_data.clear()
@@ -489,7 +487,6 @@ def main():
         user_menu = st.radio("Menu", menu_opts, horizontal=True, label_visibility="collapsed", key="user_menu_state")
 
         if user_menu == t('tab_borrow'):
-            # 前台只會顯示仍在 gauges 表中的資料 (因為已報廢的會被徹底刪除)
             available = df_g[df_g['status'] == '可借出']
             categories = [t('all_cat')] + list(available['category'].unique()) if not available.empty else [
                 t('all_cat')]
@@ -549,9 +546,19 @@ def main():
                                 st.button(t('btn_not_yours'), key=f"dis_{row['id']}", disabled=True)
 
         elif user_menu == t('tab_status'):
-            disp_df = df_g[['id', 'category', 'status', 'current_user']].copy()
-            disp_df.rename(columns={'id': t('col_id'), 'category': t('col_cat'), 'status': t('col_status'),
-                                    'current_user': t('col_user')}, inplace=True)
+            # 💡 升級：將 note (現值) 加入前端查詢狀態的顯示欄位中
+            disp_df = df_g[['id', 'category', 'status', 'current_user', 'note']].copy()
+            # 將空白的 note 填上防呆字元 '-'
+            disp_df['note'] = disp_df['note'].replace('', '-').fillna('-')
+
+            disp_df.rename(columns={
+                'id': t('col_id'),
+                'category': t('col_cat'),
+                'status': t('col_status'),
+                'current_user': t('col_user'),
+                'note': t('col_current')  # 對應至 "當前現值"
+            }, inplace=True)
+
             lang = st.session_state.get('lang', 'zh')
             disp_df[t('col_status')] = disp_df[t('col_status')].apply(
                 lambda x: t(f"db_{x}") if f"db_{x}" in LANG_DICT[lang] else x)
@@ -588,7 +595,7 @@ def main():
                         if not df_logs.empty and 'gauge_id' in df_logs.columns:
                             open_sessions = df_logs[
                                 (df_logs['gauge_id'].astype(str).str.strip() == str(row['id']).strip()) & (
-                                            df_logs['status'].str.strip() == '待驗收')]
+                                        df_logs['status'].str.strip() == '待驗收')]
                             if not open_sessions.empty:
                                 m_info = open_sessions['machine'].values[-1]
 
@@ -642,7 +649,6 @@ def main():
                 st.subheader("📋 試磨件當前尺寸總表")
                 if not df_g.empty:
                     summary_data = []
-                    # gauges 內皆為有效件，已報廢的不在表內
                     active_df = df_g
 
                     for _, row in active_df.iterrows():
@@ -790,7 +796,7 @@ def main():
                     else:
                         st.info(t('stat_no_log'))
 
-            # --- 5. 報廢汰換 (邏輯重寫版) ---
+            # --- 5. 報廢汰換 ---
             elif admin_menu == t('menu_scrap'):
                 st.subheader(t('menu_scrap'))
                 active_items = df_g
@@ -847,16 +853,13 @@ def main():
                         if st.button(t('scrap_btn'), type="primary", use_container_width=True):
                             if scrap_note.strip():
                                 if do_replace:
-                                    # 1. 舊品報廢 (直接把舊的從 gauges 刪除)，備註加上替換標籤
                                     scrap_msg = f"{scrap_note} {t('log_scrap_replaced')}"
                                     update_db(target_id, 'scrap', "Admin", note=scrap_msg)
 
-                                    # 2. 將新品作為「全新的一列」直接塞入 gauges 庫存表的最下方，狀態為可借出
                                     val_str = " | ".join([f"{k}:{v}" for k, v in measured_vals.items()])
                                     ws_gauges.append_row(
                                         [target_id, old_row['category'], old_row['spec'], "可借出", "", "", val_str])
 
-                                    # 3. 獨立新增一筆「新品入庫」的日誌
                                     now_tw = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
                                     post_json = json.dumps(measured_vals, ensure_ascii=False)
                                     ws_logs.append_row(
@@ -866,7 +869,6 @@ def main():
                                     get_all_data.clear()
                                     st.success(t('scrap_ok_both').format(target_id))
                                 else:
-                                    # 單純報廢 (直接刪除該列)
                                     update_db(target_id, 'scrap', "Admin", note=scrap_note)
                                     st.success(t('scrap_ok_only').format(target_id))
                                 st.rerun()
@@ -881,7 +883,7 @@ def main():
                 st.write(t('log_desc'))
                 st.dataframe(df_logs, use_container_width=True)
 
-            # --- 7. 系統基本設定 (動態尺寸輸入版) ---
+            # --- 7. 系統基本設定 ---
             elif admin_menu == t('menu_sys'):
                 st.subheader(t('menu_sys'))
                 st.write(t('sys_desc'))
@@ -927,7 +929,6 @@ def main():
                         new_spec = st.text_input(t('sys_item_spec'), placeholder=t('sys_item_spec_ph'))
                         st.caption(t('sys_spec_tip'))
 
-                        # 即時解析規格並顯示現值輸入框
                         raw_specs = str(new_spec).split(",") if new_spec else []
                         regions_info = {}
                         for s in raw_specs:
@@ -959,13 +960,11 @@ def main():
                                 if str(new_id.strip()) in df_g['id'].astype(str).str.strip().tolist():
                                     st.error(t('sys_err_exist'))
                                 else:
-                                    # 1. 寫入庫存
                                     val_str = " | ".join(
                                         [f"{k}:{v}" for k, v in measured_vals.items()]) if measured_vals else ""
                                     ws_gauges.append_row(
                                         [new_id.strip(), new_cat.strip(), new_spec.strip(), "可借出", "", "", val_str])
 
-                                    # 2. 同步寫入日誌 (新品入庫)
                                     now_tw = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
                                     post_json = json.dumps(measured_vals, ensure_ascii=False) if measured_vals else "{}"
                                     ws_logs.append_row([str(new_id).strip(), "Admin", "", now_tw, now_tw, "", post_json,
