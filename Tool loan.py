@@ -66,7 +66,7 @@ LANG_DICT = {
         "col_status": "狀態",
         "col_user": "使用者",
         "col_target": "目標值",
-        "col_current": "當前現值",  # 💡 前台顯示的名稱
+        "col_current": "現值",
         "col_remain": "剩餘研磨量",
         "col_judge": "判斷",
         "col_part": "部位",
@@ -198,7 +198,7 @@ LANG_DICT = {
         "col_status": "Status",
         "col_user": "User",
         "col_target": "Target",
-        "col_current": "Current Size",  # 💡 前台顯示的名稱
+        "col_current": "Current",
         "col_remain": "Remaining",
         "col_judge": "Judgment",
         "col_part": "Part",
@@ -463,6 +463,7 @@ def main():
 
     df_users = get_all_data('users')
     df_g = get_all_data('gauges')
+    df_logs = get_all_data('logs')  # 💡 提取 df_logs，用於前台抓取機台資料
     user_list = df_users['name'].astype(str).tolist() if not df_users.empty else []
 
     # ==================================
@@ -526,14 +527,26 @@ def main():
                 st.info(t('no_borrowed'))
             else:
                 for _, row in borrowed.iterrows():
+                    # 💡 尋找當前使用中的機台號碼
+                    m_info = "無"
+                    if not df_logs.empty and 'gauge_id' in df_logs.columns:
+                        open_sessions = df_logs[
+                            (df_logs['gauge_id'].astype(str).str.strip() == str(row['id']).strip()) &
+                            (df_logs['status'].astype(str).str.strip().isin(['使用中', '待驗收']))
+                            ]
+                        if not open_sessions.empty:
+                            m_val = str(open_sessions['machine'].values[-1]).strip()
+                            if m_val and m_val != "無填寫" and m_val != "nan":
+                                m_info = m_val
+
                     col1, col2 = st.columns([5, 1])
                     with col1:
                         if row['status'] == '待確認':
                             st.warning(
-                                f"⏳ **{row['category']}** | {row['id']} - {t('status_holder')}: {row['current_user']} ({t('status_qa')})")
+                                f"⏳ **{row['category']}** | {row['id']} - {t('status_holder')}: {row['current_user']} | {t('txt_machine')}: {m_info} ({t('status_qa')})")
                         else:
                             st.success(
-                                f"✅ **{row['category']}** | {row['id']} - {t('status_holder')}: {row['current_user']}")
+                                f"✅ **{row['category']}** | {row['id']} - {t('status_holder')}: {row['current_user']} | {t('txt_machine')}: {m_info}")
                     with col2:
                         if row['status'] == '待確認':
                             st.button(t('btn_wait'), key=f"wait_{row['id']}", disabled=True)
@@ -546,9 +559,7 @@ def main():
                                 st.button(t('btn_not_yours'), key=f"dis_{row['id']}", disabled=True)
 
         elif user_menu == t('tab_status'):
-            # 💡 升級：將 note (現值) 加入前端查詢狀態的顯示欄位中
             disp_df = df_g[['id', 'category', 'status', 'current_user', 'note']].copy()
-            # 將空白的 note 填上防呆字元 '-'
             disp_df['note'] = disp_df['note'].replace('', '-').fillna('-')
 
             disp_df.rename(columns={
@@ -556,7 +567,7 @@ def main():
                 'category': t('col_cat'),
                 'status': t('col_status'),
                 'current_user': t('col_user'),
-                'note': t('col_current')  # 對應至 "當前現值"
+                'note': t('col_current')
             }, inplace=True)
 
             lang = st.session_state.get('lang', 'zh')
@@ -575,8 +586,6 @@ def main():
                 get_all_data.clear()
                 st.success(t('msg_sync'))
                 st.rerun()
-
-            df_logs = get_all_data('logs')
 
             admin_menu_opts = [t('menu_qa'), t('menu_list'), t('menu_wear'), t('menu_stats'), t('menu_scrap'),
                                t('menu_logs'), t('menu_sys')]
