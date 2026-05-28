@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import os
 import plotly.express as px
 import json
@@ -111,13 +110,11 @@ LANG_DICT = {
         "scrap_cb_replace": "報廢並換上新品 (沿用編號)",
         "scrap_ok_both": "✅ 已成功報廢舊品，並同步將新品 [{}] 錄入尺寸重新上架！",
         "scrap_ok_only": "✅ [{}] 報廢完成！資料已從庫存表中移除。",
-
         "log_scrap_replaced": "【已同步替換新品】",
         "log_new_arrival": "新品入庫",
         "log_sys_add": "系統新增",
         "log_scrap_add": "報廢替換",
         "sys_init_size": "📝 錄入初始現值",
-
         "log_desc": "📊 這裡呈現的是完整的週期事件 (每個橫列代表一次借用~歸還的資訊)",
         "sys_desc": "您可直接在此新增人員或將新購買的試磨件入庫。",
         "sys_user_add": "#### 👤 人員增減",
@@ -198,7 +195,7 @@ LANG_DICT = {
         "col_status": "Status",
         "col_user": "User",
         "col_target": "Target",
-        "col_current": "Current",
+        "col_current": "Current Size",
         "col_remain": "Remaining",
         "col_judge": "Judgment",
         "col_part": "Part",
@@ -243,13 +240,11 @@ LANG_DICT = {
         "scrap_cb_replace": "Scrap & Replace (Keep ID)",
         "scrap_ok_both": "✅ Scrapped old item and successfully registered new measurements for [{}]!",
         "scrap_ok_only": "✅ [{}] Scrapped and removed from active list!",
-
         "log_scrap_replaced": "[Replaced with New]",
         "log_new_arrival": "New Arrival",
         "log_sys_add": "System Added",
         "log_scrap_add": "Scrap Replace",
         "sys_init_size": "📝 Enter Initial Measurements",
-
         "log_desc": "📊 Full lifecycle events (Each row is a complete borrow-return cycle)",
         "sys_desc": "Add users or new test pieces directly here.",
         "sys_user_add": "#### 👤 Add/Remove User",
@@ -285,7 +280,6 @@ def t(key):
 
 
 # --- 0. 設定與連線 ---
-SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 SHEET_NAME = 'test_piece_db'
 JSON_FILE = 'service_account.json'
 
@@ -293,12 +287,13 @@ JSON_FILE = 'service_account.json'
 @st.cache_resource
 def connect_google_sheet():
     try:
+        # 💡 最新版 gspread 內建寫法，不再需要 oauth2client 套件
         if os.path.exists(JSON_FILE):
-            creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_FILE, SCOPE)
+            client = gspread.service_account(filename=JSON_FILE)
         else:
-            creds_dict = st.secrets["gcp_service_account"]
-            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
-        client = gspread.authorize(creds)
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            client = gspread.service_account_from_dict(creds_dict)
+
         sheet = client.open(SHEET_NAME)
         return sheet
     except Exception as e:
@@ -463,7 +458,7 @@ def main():
 
     df_users = get_all_data('users')
     df_g = get_all_data('gauges')
-    df_logs = get_all_data('logs')  # 💡 提取 df_logs，用於前台抓取機台資料
+    df_logs = get_all_data('logs')
     user_list = df_users['name'].astype(str).tolist() if not df_users.empty else []
 
     # ==================================
@@ -527,7 +522,6 @@ def main():
                 st.info(t('no_borrowed'))
             else:
                 for _, row in borrowed.iterrows():
-                    # 💡 尋找當前使用中的機台號碼
                     m_info = "無"
                     if not df_logs.empty and 'gauge_id' in df_logs.columns:
                         open_sessions = df_logs[
