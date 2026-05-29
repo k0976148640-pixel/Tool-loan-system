@@ -2,12 +2,11 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 import os
 import plotly.express as px
 import json
 import streamlit.components.v1 as components
-# 💡 關鍵升級：淘汰 oauth2client，換成 Google 現代版驗證套件
-from google.oauth2.service_account import Credentials
 
 # ==========================================
 # 🌐 語言翻譯辭典庫 (i18n)
@@ -281,37 +280,38 @@ def t(key):
     return LANG_DICT[lang].get(key, key)
 
 
-# --- 0. 設定與連線 (全面升級版) ---
-SHEET_NAME = 'test_piece_db'
+# --- 0. 設定與連線 (移植您另一套系統的完美引擎) ---
+SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+SHEET_NAME = 'test_piece_db'  # 👈 保持此系統的資料庫名稱
 JSON_FILE = 'service_account.json'
-SCOPE = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 
 @st.cache_resource
 def connect_google_sheet():
-    try:
-        # 💡 使用官方唯一認證的新版寫法，解決 <Response [200]> 衝突
-        if os.path.exists(JSON_FILE):
-            creds = Credentials.from_service_account_file(JSON_FILE, scopes=SCOPE)
-        else:
-            creds_dict = dict(st.secrets["gcp_service_account"])
-            # 防呆：確保雲端金鑰的換行字元能被正確解析
-            if "\\n" in creds_dict.get("private_key", ""):
-                creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-            creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+    if os.path.exists(JSON_FILE):
+        creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_FILE, SCOPE)
+    else:
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
 
-        client = gspread.authorize(creds)
-        sheet = client.open(SHEET_NAME)
-        return sheet
-    except Exception as e:
-        st.error(f"❌ 連線失敗/Connection Error：{e}")
+    client = gspread.authorize(creds)
+    sheet = client.open(SHEET_NAME)
+    return sheet
+
+
+# 💡 安全氣囊：捕捉超速錯誤 (跟您另一套系統一樣)
+try:
+    sh = connect_google_sheet()
+    ws_gauges = sh.worksheet('gauges')
+    ws_logs = sh.worksheet('logs')
+    ws_users = sh.worksheet('users')
+except Exception as e:
+    if "429" in str(e):
+        st.warning("⏳ 點擊速度太快囉！Google 伺服器正在喘氣，請等待 15 秒後再重新整理網頁。")
         st.stop()
-
-
-sh = connect_google_sheet()
-ws_gauges = sh.worksheet('gauges')
-ws_logs = sh.worksheet('logs')
-ws_users = sh.worksheet('users')
+    else:
+        st.error(f"連線失敗！\n錯誤訊息: {e}")
+        st.stop()
 
 
 # --- 1. 資料處理核心 ---
@@ -333,7 +333,6 @@ def get_all_data(worksheet_name):
             st.warning("⚠️ 系統冷卻中 / System cooling down. Wait 10s.")
             st.stop()
         else:
-            st.error(f"⚠️ 讀取資料表 {worksheet_name} 失敗，請確認表單名稱是否正確。")
             return pd.DataFrame()
 
 
