@@ -287,7 +287,6 @@ JSON_FILE = 'service_account.json'
 @st.cache_resource
 def connect_google_sheet():
     try:
-        # 💡 最新版 gspread 內建寫法，不再需要 oauth2client 套件
         if os.path.exists(JSON_FILE):
             client = gspread.service_account(filename=JSON_FILE)
         else:
@@ -326,6 +325,7 @@ def get_all_data(worksheet_name):
             st.warning("⚠️ 系統冷卻中 / System cooling down. Wait 10s.")
             st.stop()
         else:
+            st.error(f"⚠️ 讀取資料表 {worksheet_name} 失敗，請確認表單名稱是否正確。")
             return pd.DataFrame()
 
 
@@ -336,7 +336,8 @@ def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="
     try:
         g_idx = df_g[df_g['id'].astype(str).str.strip() == str(gauge_id).strip()].index[0]
         g_row = int(g_idx) + 2
-    except:
+    except Exception as e:
+        st.error(f"⚠️ 系統錯誤：找不到編號 {gauge_id}，請確認是否已被刪除。")
         return
 
     if action == 'borrow':
@@ -444,7 +445,10 @@ def main():
     """, unsafe_allow_html=True)
 
     df_logs_check = get_all_data('logs')
+    # 💡 重大修復：恢復防呆提示，避免系統因找不到欄位而發生「無預警死機」
     if not df_logs_check.empty and 'pre_size' not in df_logs_check.columns:
+        st.error(
+            "🚨 **【系統架構升級提示】** 🚨\n\n請您前往 Google Sheets 的 `logs` 工作表：\n\n1. 將第一列的標題完全替換為這 9 個欄位：\n`gauge_id`, `user`, `machine`, `borrow_time`, `return_time`, `pre_size`, `post_size`, `status`, `note`")
         st.stop()
 
     st.sidebar.markdown(f"**{t('sidebar_lang')}**")
