@@ -2,11 +2,12 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import os
 import plotly.express as px
 import json
 import streamlit.components.v1 as components
+# 💡 關鍵升級：淘汰 oauth2client，換成 Google 現代版驗證套件
+from google.oauth2.service_account import Credentials
 
 # ==========================================
 # 🌐 語言翻譯辭典庫 (i18n)
@@ -280,21 +281,25 @@ def t(key):
     return LANG_DICT[lang].get(key, key)
 
 
-# --- 0. 設定與連線 (退回原本最穩定的版本) ---
-SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+# --- 0. 設定與連線 (全面升級版) ---
 SHEET_NAME = 'test_piece_db'
 JSON_FILE = 'service_account.json'
+SCOPE = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 
 @st.cache_resource
 def connect_google_sheet():
     try:
-        # 💡 退回完美的 oauth2client 經典寫法
+        # 💡 使用官方唯一認證的新版寫法，解決 <Response [200]> 衝突
         if os.path.exists(JSON_FILE):
-            creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_FILE, SCOPE)
+            creds = Credentials.from_service_account_file(JSON_FILE, scopes=SCOPE)
         else:
-            creds_dict = st.secrets["gcp_service_account"]
-            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            # 防呆：確保雲端金鑰的換行字元能被正確解析
+            if "\\n" in creds_dict.get("private_key", ""):
+                creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+
         client = gspread.authorize(creds)
         sheet = client.open(SHEET_NAME)
         return sheet
@@ -339,8 +344,7 @@ def update_db(gauge_id, action, user, machine_no="", val_dict=None, new_status="
     try:
         g_idx = df_g[df_g['id'].astype(str).str.strip() == str(gauge_id).strip()].index[0]
         g_row = int(g_idx) + 2
-    except Exception as e:
-        st.error(f"⚠️ 系統錯誤：找不到編號 {gauge_id}，請確認是否已被刪除。")
+    except:
         return
 
     if action == 'borrow':
