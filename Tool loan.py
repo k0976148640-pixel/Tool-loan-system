@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 import os
 import plotly.express as px
 import json
@@ -279,7 +280,8 @@ def t(key):
     return LANG_DICT[lang].get(key, key)
 
 
-# --- 0. 設定與連線 ---
+# --- 0. 設定與連線 (退回原本最穩定的版本) ---
+SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 SHEET_NAME = 'test_piece_db'
 JSON_FILE = 'service_account.json'
 
@@ -287,12 +289,13 @@ JSON_FILE = 'service_account.json'
 @st.cache_resource
 def connect_google_sheet():
     try:
+        # 💡 退回完美的 oauth2client 經典寫法
         if os.path.exists(JSON_FILE):
-            client = gspread.service_account(filename=JSON_FILE)
+            creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_FILE, SCOPE)
         else:
-            creds_dict = dict(st.secrets["gcp_service_account"])
-            client = gspread.service_account_from_dict(creds_dict)
-
+            creds_dict = st.secrets["gcp_service_account"]
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
+        client = gspread.authorize(creds)
         sheet = client.open(SHEET_NAME)
         return sheet
     except Exception as e:
@@ -445,7 +448,6 @@ def main():
     """, unsafe_allow_html=True)
 
     df_logs_check = get_all_data('logs')
-    # 💡 重大修復：恢復防呆提示，避免系統因找不到欄位而發生「無預警死機」
     if not df_logs_check.empty and 'pre_size' not in df_logs_check.columns:
         st.error(
             "🚨 **【系統架構升級提示】** 🚨\n\n請您前往 Google Sheets 的 `logs` 工作表：\n\n1. 將第一列的標題完全替換為這 9 個欄位：\n`gauge_id`, `user`, `machine`, `borrow_time`, `return_time`, `pre_size`, `post_size`, `status`, `note`")
